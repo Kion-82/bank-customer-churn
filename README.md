@@ -88,6 +88,42 @@ unnecessary retention call.
 **Random Forest** was selected: best ROC-AUC and best recall among the
 balanced models.
 
+### 7.1 PCA: redundancy check and ablation (`src/06_pca_analysis.py`)
+
+To test whether the numeric features are redundant, and whether dimensionality
+reduction helps, PCA was applied to the 10 continuous/count features
+(standardized, fit on the training split only; binary flags and one-hot
+categoricals passed through).
+
+- **Little redundancy.** Apart from engineered ratios correlating with their
+  source columns (|r| ≈ 0.5) and a genuine balance–products relationship
+  (r = −0.31), features are close to uncorrelated. 9 of 10 components are
+  needed to retain 95% of the variance.
+- **PCA did not help.**
+
+| Model | Numeric block | CV ROC-AUC | Test ROC-AUC |
+|---|---|---|---|
+| Logistic Regression | raw | 0.7665 | 0.7792 |
+| Logistic Regression | PCA (9 comps) | 0.7665 | 0.7799 |
+| Random Forest | raw | 0.8550 | 0.8772 |
+| Random Forest | PCA (9 comps) | 0.8397 | 0.8638 |
+| XGBoost | raw | 0.8521 | 0.8662 |
+| XGBoost | PCA (9 comps) | 0.8399 | 0.8516 |
+
+- **Why.** With an L2 penalty, logistic regression is invariant to rotations
+  of its inputs (with all 10 components its CV ROC-AUC is identical to the
+  raw baseline). Tree models split on single original features, so rotating
+  the axes hurts them even when no component is dropped (Random Forest:
+  0.840 with all 10 components vs 0.855 raw). Components are also linear
+  mixtures, which would make SHAP explanations unreadable.
+
+Raw features were therefore kept in the final model.
+
+<p align="center">
+  <img src="reports/figs/pca_scree.png" width="400">
+  <img src="reports/figs/pca_sweep.png" width="400">
+</p>
+
 ## 8. Model interpretability — SHAP (`src/05_shap_analysis.py`)
 
 Global feature importance confirms the SQL/EDA findings quantitatively —
